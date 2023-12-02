@@ -9,6 +9,7 @@ import com.guo.event.utils.Md5Util;
 import com.guo.event.utils.ThreadLocalUtil;
 import org.hibernate.validator.constraints.URL;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.util.StringUtils;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -16,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 import javax.validation.constraints.Pattern;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 @RestController
 @RequestMapping("/user")
@@ -24,6 +26,9 @@ public class UserController {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private StringRedisTemplate stringRedisTemplate;
 
 
     @PostMapping("/register")
@@ -51,6 +56,7 @@ public class UserController {
             claims.put("id",loginUser.getId());
             claims.put("username",loginUser.getUsername());
             String token = JwtUtil.genToken(claims);
+            stringRedisTemplate.opsForValue().set(token,token,1, TimeUnit.HOURS);
             return Result.success(token);
         }
         return Result.error("用户名或密码错误");
@@ -78,7 +84,7 @@ public class UserController {
 
 
     @PatchMapping("/updatePwd")
-    public Result updatePwd(@RequestBody Map<String,String> params) {
+    public Result updatePwd(@RequestBody Map<String,String> params,@RequestHeader("Authorization") String token) {
         String oldPwd = params.get("old_pwd");
         String newPwd = params.get("new_pwd");
         String rePwd = params.get("re_pwd");
@@ -95,6 +101,7 @@ public class UserController {
             return Result.error("两次填写的密码不一致");
         }
         userService.updatePwd(newPwd);
+        stringRedisTemplate.opsForValue().getOperations().delete(token);
         return Result.success();
 
     }

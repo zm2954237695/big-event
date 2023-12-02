@@ -2,6 +2,7 @@ package com.guo.event.controller;
 
 
 import com.guo.event.pojo.Result;
+import com.guo.event.utils.AliOssUtil;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -16,10 +17,10 @@ import java.util.UUID;
 public class FileUploadController {
 
     @PostMapping("/upload")
-    public Result<String> upload(MultipartFile file) throws IOException {
+    public Result<String> upload(MultipartFile file) throws Exception {
         String originalFilename = file.getOriginalFilename();
         String filename = UUID.randomUUID() +originalFilename.substring(originalFilename.indexOf("."));
-        file.transferTo(new File("C:\\Users\\逐梦\\Desktop\\files"+filename));
-        return Result.success("url访问地址...");
+        String url = AliOssUtil.uploadFile(filename, file.getInputStream());
+        return Result.success(url);
     }
 }
